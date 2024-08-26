@@ -1,4 +1,4 @@
-name: dlf
+name: gs
 channels:
   - pytorch
   - conda-forge
