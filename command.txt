@@ -1,0 +1,1 @@
+python train.py -s C:/Projects/Code/Aurora_papers/data/Gaussian_arm_3cam/data_0827_LSKinside -m C:/Projects/Code/Aurora_papers/data/Gaussian_arm_3cam/data_0827_LSKinside/3dg
