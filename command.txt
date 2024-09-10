@@ -1,2 +1,4 @@
 python train.py -s C:/Projects/Code/Aurora_papers/data/Gaussian_arm_3cam/data_0827_LSKinside -m C:/Projects/Code/Aurora_papers/data/Gaussian_arm_3cam/data_0827_LSKinside/3dgs
 python train.py -s C:/Projects/Code/Aurora_papers/data/Gaussian_arm_3cam/data_0827_FIToutside -m C:/Projects/Code/Aurora_papers/data/Gaussian_arm_3cam/data_0827_FIToutside/3dgs
+
+python train.py -s /home/luvision/project/Code/data/Aurora/Fig_3/20240909_2/concave_recon/colmap -m /home/luvision/project/Code/data/Aurora/Fig_3/20240909_2/concave_recon/3dgs
