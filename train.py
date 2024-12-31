@@ -271,6 +271,9 @@ if __name__ == "__main__":
     args.save_iterations.append(args.iterations)
     
     print("Optimizing " + args.model_path)
+    print('Image path ' + args.images)
+    print('Depth path ' + args.depths)
+    print('Source path ' + args.source_path)
 
     # Initialize system state (RNG)
     safe_state(args.quiet)

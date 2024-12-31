@@ -70,6 +70,9 @@ if __name__ == '__main__':
     parser.add_argument('--model_type', default="bin")
     args = parser.parse_args()
 
+    args.base_dir = '/data/hdd/Data/SkinSight_video/UVC_cam_undis'
+    args.depths_dir = '/data/hdd/Data/SkinSight_video/UVC_cam_undis/depths'
+    args.model_type = 'bin'
 
     cam_intrinsics, images_metas, points3d = read_model(os.path.join(args.base_dir, "sparse", "0"), ext=f".{args.model_type}")
 
