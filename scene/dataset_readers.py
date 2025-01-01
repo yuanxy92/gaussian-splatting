@@ -217,6 +217,11 @@ def readColmapSceneInfo(path, images, depths, eval, train_test_exp, llffhold=8):
     except:
         pcd = None
 
+
+    train_cam_infos = train_cam_infos[:2500]
+    print('Number of train images: ', len(train_cam_infos))
+    print('Number of test images: ', len(test_cam_infos))
+
     scene_info = SceneInfo(point_cloud=pcd,
                            train_cameras=train_cam_infos,
                            test_cameras=test_cam_infos,
