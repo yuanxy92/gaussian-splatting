@@ -13,7 +13,7 @@ import os
 import sys
 from PIL import Image
 from typing import NamedTuple
-from scene.colmap_loader import read_extrinsics_text, read_intrinsics_text, qvec2rotmat, \
+from scene.colmap_loader import read_extrinsics_text, read_intrinsics_text, qvec2rotmat, rotmat2qvec,\
     read_extrinsics_binary, read_intrinsics_binary, read_points3D_binary, read_points3D_text
 from utils.graphics_utils import getWorld2View2, focal2fov, fov2focal
 import numpy as np
@@ -22,6 +22,40 @@ from pathlib import Path
 from plyfile import PlyData, PlyElement
 from utils.sh_utils import SH2RGB
 from scene.gaussian_model import BasicPointCloud
+
+def apply_4x4_transform(points, transform_matrix):
+    """
+    Apply a 4x4 transformation matrix to a point cloud.
+    
+    Parameters:
+    - points (np.ndarray): Point cloud, shape (N, 3)
+    - transform_matrix (np.ndarray): 4x4 transformation matrix
+    
+    Returns:
+    - transformed_points (np.ndarray): Transformed point cloud, shape (N, 3)
+    """
+    # Convert points to homogeneous coordinates by adding a 1 in the fourth column
+    num_points = points.shape[0]
+    homogeneous_points = np.hstack((points, np.ones((num_points, 1))))
+    
+    # Apply the 4x4 transformation matrix
+    transformed_points_homogeneous = np.dot(homogeneous_points, transform_matrix.T)
+    
+    # Convert back to 3D coordinates by dividing by the homogeneous coordinate
+    transformed_points = transformed_points_homogeneous[:, :3] / transformed_points_homogeneous[:, 3].reshape(-1, 1)
+    
+    return transformed_points
+
+def apply_camera_transform_4x4(extrinsic_matrix, transform_matrix):
+    transform_matrix_inv = np.eye(4)
+    inv_rotation = transform_matrix[:3, :3].T
+    transform_matrix_inv[:3, :3] = inv_rotation
+    transform_matrix_inv[:3, 3] = -inv_rotation @ transform_matrix[:3, 3]
+
+    # Apply the transformation matrix to the camera's extrinsic matrix
+    transformed_extrinsic = np.dot(extrinsic_matrix, transform_matrix_inv)
+    
+    return transformed_extrinsic
 
 class CameraInfo(NamedTuple):
     uid: int
@@ -142,7 +176,7 @@ def storePly(path, xyz, rgb):
     ply_data = PlyData([vertex_element])
     ply_data.write(path)
 
-def readColmapSceneInfo(path, images, depths, eval, train_test_exp, llffhold=8):
+def readColmapSceneInfo(path, images, depths, eval, train_test_exp, llffhold=8, transform4x4 = np.eye(4)):
     try:
         cameras_extrinsic_file = os.path.join(path, "sparse/0", "images.bin")
         cameras_intrinsic_file = os.path.join(path, "sparse/0", "cameras.bin")
@@ -153,6 +187,22 @@ def readColmapSceneInfo(path, images, depths, eval, train_test_exp, llffhold=8):
         cameras_intrinsic_file = os.path.join(path, "sparse/0", "cameras.txt")
         cam_extrinsics = read_extrinsics_text(cameras_extrinsic_file)
         cam_intrinsics = read_intrinsics_text(cameras_intrinsic_file)
+
+    # apply transformation matrix
+    transform4x4 = [[0.485640704632,	-0.160323888063,	-0.017080472782,	0.875815451145],
+                    [0.125420704484,	0.341586232185,	0.359764993191,	-1.248310685158],
+                    [-0.101317040622,	-0.345626175404,	0.363482803106,	8.816628456116],
+                    [0.000,	0.000,	0.000,	1.000]]
+    for cam_idx in range(len(cam_extrinsics)):
+        qvec = cam_extrinsics[cam_idx].qvec
+        tvec = cam_extrinsics[cam_idx].tvec
+        R = qvec2rotmat(qvec=qvec)
+        extrinsic_orig = np.eye(4)
+        extrinsic_orig[:3, :3] = R
+        extrinsic_orig[:3, 3] = tvec
+        extrinsic_new = apply_camera_transform_4x4(extrinsic_orig, transform4x4)
+        cam_extrinsics[cam_idx].qvec = rotmat2qvec(extrinsic_new[:3, :3])
+        cam_extrinsics[cam_idx].tvec = extrinsic_new[:3, 3]
 
     depth_params_file = os.path.join(path, "sparse/0", "depth_params.json")
     ## if depth_params_file isnt there AND depths file is here -> throw error
@@ -205,29 +255,36 @@ def readColmapSceneInfo(path, images, depths, eval, train_test_exp, llffhold=8):
     ply_path = os.path.join(path, "sparse/0/points3D.ply")
     bin_path = os.path.join(path, "sparse/0/points3D.bin")
     txt_path = os.path.join(path, "sparse/0/points3D.txt")
-    if not os.path.exists(ply_path):
-        print("Converting point3d.bin to .ply, will happen only the first time you open the scene.")
-        try:
-            xyz, rgb, _ = read_points3D_binary(bin_path)
-        except:
-            xyz, rgb, _ = read_points3D_text(txt_path)
-        storePly(ply_path, xyz, rgb)
-    try:
-        pcd = fetchPly(ply_path)
-    except:
-        pcd = None
+    # if not os.path.exists(ply_path):
+    #     print("Converting point3d.bin to .ply, will happen only the first time you open the scene.")
+    #     try:
+    #         xyz, rgb, _ = read_points3D_binary(bin_path)
+    #     except:
+    #         xyz, rgb, _ = read_points3D_text(txt_path)
+    #     storePly(ply_path, xyz, rgb)
+    # try:
+    #     pcd = fetchPly(ply_path)
+    # except:
+    #     pcd = None
 
+    try:
+        xyz, rgb, _ = read_points3D_binary(bin_path)
+    except:
+        xyz, rgb, _ = read_points3D_text(txt_path)
+    apply_4x4_transform(xyz, transform4x4)
+    storePly(ply_path, xyz, rgb)
+    pcd = fetchPly(ply_path)
 
     train_cam_infos = train_cam_infos[:2500]
     print('Number of train images: ', len(train_cam_infos))
     print('Number of test images: ', len(test_cam_infos))
 
     scene_info = SceneInfo(point_cloud=pcd,
-                           train_cameras=train_cam_infos,
-                           test_cameras=test_cam_infos,
-                           nerf_normalization=nerf_normalization,
-                           ply_path=ply_path,
-                           is_nerf_synthetic=False)
+        train_cameras=train_cam_infos,
+        test_cameras=test_cam_infos,
+        nerf_normalization=nerf_normalization,
+        ply_path=ply_path,
+        is_nerf_synthetic=False)
     return scene_info
 
 def readCamerasFromTransforms(path, transformsfile, depths_folder, white_background, is_test, extension=".png"):
@@ -307,11 +364,11 @@ def readNerfSyntheticInfo(path, white_background, depths, eval, extension=".png"
         pcd = None
 
     scene_info = SceneInfo(point_cloud=pcd,
-                           train_cameras=train_cam_infos,
-                           test_cameras=test_cam_infos,
-                           nerf_normalization=nerf_normalization,
-                           ply_path=ply_path,
-                           is_nerf_synthetic=True)
+        train_cameras=train_cam_infos,
+        test_cameras=test_cam_infos,
+        nerf_normalization=nerf_normalization,
+        ply_path=ply_path,
+        is_nerf_synthetic=True)
     return scene_info
 
 sceneLoadTypeCallbacks = {
