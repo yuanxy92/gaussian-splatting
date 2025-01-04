@@ -193,16 +193,23 @@ def readColmapSceneInfo(path, images, depths, eval, train_test_exp, llffhold=8, 
                     [0.125420704484,	0.341586232185,	0.359764993191,	-1.248310685158],
                     [-0.101317040622,	-0.345626175404,	0.363482803106,	8.816628456116],
                     [0.000,	0.000,	0.000,	1.000]]
+    transform4x4 = np.array(transform4x4)
+    transformscale = np.linalg.norm(transform4x4[:3, :3], axis=0)[0]
+    transform4x4[:3, :3] = transform4x4[:3, :3] / transformscale
+
     for cam_idx in range(len(cam_extrinsics)):
-        qvec = cam_extrinsics[cam_idx].qvec
-        tvec = cam_extrinsics[cam_idx].tvec
+        qvec = cam_extrinsics[cam_idx + 1].qvec
+        tvec = cam_extrinsics[cam_idx + 1].tvec
         R = qvec2rotmat(qvec=qvec)
         extrinsic_orig = np.eye(4)
         extrinsic_orig[:3, :3] = R
-        extrinsic_orig[:3, 3] = tvec
+        extrinsic_orig[:3, 3] = tvec * transformscale
         extrinsic_new = apply_camera_transform_4x4(extrinsic_orig, transform4x4)
-        cam_extrinsics[cam_idx].qvec = rotmat2qvec(extrinsic_new[:3, :3])
-        cam_extrinsics[cam_idx].tvec = extrinsic_new[:3, 3]
+
+        cam_extrinsics[cam_idx + 1] = cam_extrinsics[cam_idx + 1]._replace(qvec=rotmat2qvec(extrinsic_new[:3, :3]))
+        cam_extrinsics[cam_idx + 1] = cam_extrinsics[cam_idx + 1]._replace(tvec=extrinsic_new[:3, 3])
+        # cam_extrinsics[cam_idx + 1].qvec = rotmat2qvec(extrinsic_new[:3, :3])
+        # cam_extrinsics[cam_idx + 1].tvec = extrinsic_new[:3, 3]
 
     depth_params_file = os.path.join(path, "sparse/0", "depth_params.json")
     ## if depth_params_file isnt there AND depths file is here -> throw error
@@ -271,7 +278,8 @@ def readColmapSceneInfo(path, images, depths, eval, train_test_exp, llffhold=8, 
         xyz, rgb, _ = read_points3D_binary(bin_path)
     except:
         xyz, rgb, _ = read_points3D_text(txt_path)
-    apply_4x4_transform(xyz, transform4x4)
+    xyz = apply_4x4_transform(xyz, transform4x4)
+    xyz = xyz * transformscale
     storePly(ply_path, xyz, rgb)
     pcd = fetchPly(ply_path)
 
