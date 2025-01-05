@@ -48,6 +48,40 @@ Point3D = collections.namedtuple(
     "Point3D", ["id", "xyz", "rgb", "error", "image_ids", "point2D_idxs"]
 )
 
+def apply_4x4_transform(points, transform_matrix):
+    """
+    Apply a 4x4 transformation matrix to a point cloud.
+    
+    Parameters:
+    - points (np.ndarray): Point cloud, shape (N, 3)
+    - transform_matrix (np.ndarray): 4x4 transformation matrix
+    
+    Returns:
+    - transformed_points (np.ndarray): Transformed point cloud, shape (N, 3)
+    """
+    # Convert points to homogeneous coordinates by adding a 1 in the fourth column
+    num_points = points.shape[0]
+    homogeneous_points = np.hstack((points, np.ones((num_points, 1))))
+    
+    # Apply the 4x4 transformation matrix
+    transformed_points_homogeneous = np.dot(homogeneous_points, transform_matrix.T)
+    
+    # Convert back to 3D coordinates by dividing by the homogeneous coordinate
+    transformed_points = transformed_points_homogeneous[:, :3] / transformed_points_homogeneous[:, 3].reshape(-1, 1)
+    
+    return transformed_points
+
+def apply_camera_transform_4x4(extrinsic_matrix, transform_matrix):
+    transform_matrix_inv = np.eye(4)
+    inv_rotation = transform_matrix[:3, :3].T
+    transform_matrix_inv[:3, :3] = inv_rotation
+    transform_matrix_inv[:3, 3] = -inv_rotation @ transform_matrix[:3, 3]
+
+    # Apply the transformation matrix to the camera's extrinsic matrix
+    transformed_extrinsic = np.dot(extrinsic_matrix, transform_matrix_inv)
+    
+    return transformed_extrinsic
+
 
 class Image(BaseImage):
     def qvec2rotmat(self):
@@ -485,7 +519,6 @@ def detect_model_format(path, ext):
 
     return False
 
-
 def read_model(path, ext=""):
     # try to detect the extension automatically
     if ext == "":
@@ -505,6 +538,69 @@ def read_model(path, ext=""):
         cameras = read_cameras_binary(os.path.join(path, "cameras" + ext))
         images = read_images_binary(os.path.join(path, "images" + ext))
         points3D = read_points3D_binary(os.path.join(path, "points3D") + ext)
+    
+    return cameras, images, points3D
+
+
+def read_model_transform(path, ext=""):
+    # try to detect the extension automatically
+    if ext == "":
+        if detect_model_format(path, ".bin"):
+            ext = ".bin"
+        elif detect_model_format(path, ".txt"):
+            ext = ".txt"
+        else:
+            print("Provide model format: '.bin' or '.txt'")
+            return
+
+    if ext == ".txt":
+        cameras = read_cameras_text(os.path.join(path, "cameras" + ext))
+        images = read_images_text(os.path.join(path, "images" + ext))
+        points3D = read_points3D_text(os.path.join(path, "points3D") + ext)
+    else:
+        cameras = read_cameras_binary(os.path.join(path, "cameras" + ext))
+        images = read_images_binary(os.path.join(path, "images" + ext))
+        points3D = read_points3D_binary(os.path.join(path, "points3D") + ext)
+
+    # apply transformation matrix
+    transform4x4 = [[0.485640704632,	-0.160323888063,	-0.017080472782,	0.875815451145],
+                    [0.125420704484,	0.341586232185,	0.359764993191,	-1.248310685158],
+                    [-0.101317040622,	-0.345626175404,	0.363482803106,	8.816628456116],
+                    [0.000,	0.000,	0.000,	1.000]]
+    transform4x4 = np.array(transform4x4)
+    transformscale = np.linalg.norm(transform4x4[:3, :3], axis=0)[0]
+    transform4x4[:3, :3] = transform4x4[:3, :3] / transformscale
+
+    for cam_idx in range(len(images)):
+        qvec = images[cam_idx + 1].qvec
+        tvec = images[cam_idx + 1].tvec
+        R = qvec2rotmat(qvec=qvec)
+        extrinsic_orig = np.eye(4)
+        extrinsic_orig[:3, :3] = R
+        extrinsic_orig[:3, 3] = tvec * transformscale
+        extrinsic_new = apply_camera_transform_4x4(extrinsic_orig, transform4x4)
+        extrinsic_new[:3, 3] = extrinsic_new[:3, 3] 
+        images[cam_idx + 1] = images[cam_idx + 1]._replace(qvec=rotmat2qvec(extrinsic_new[:3, :3]))
+        images[cam_idx + 1] = images[cam_idx + 1]._replace(tvec=extrinsic_new[:3, 3])
+
+    # xyz = apply_4x4_transform(xyz, transform4x4)
+    # xyz = xyz * transformscale
+    # points3D[point3D_id] = Point3D(
+    #             id=point3D_id,
+    #             xyz=xyz,
+    #             rgb=rgb,
+    #             error=error,
+    #             image_ids=image_ids,
+    #             point2D_idxs=point2D_idxs,
+    #         )
+
+    # for pt3d_idx in range(len(points3D)):
+    for pt3d_idx in points3D.keys():
+        xyz = points3D[pt3d_idx].xyz * transformscale
+        xyz = apply_4x4_transform(xyz.reshape((1,3)), transform4x4)[0] 
+        points3D[pt3d_idx] = points3D[pt3d_idx]._replace(xyz=xyz)
+
+
     return cameras, images, points3D
 
 
