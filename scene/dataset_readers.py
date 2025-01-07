@@ -189,11 +189,17 @@ def readColmapSceneInfo(path, images, depths, eval, train_test_exp, llffhold=8, 
         cam_intrinsics = read_intrinsics_text(cameras_intrinsic_file)
 
     # apply transformation matrix
+    transform4x4_dense =   [[2.171365737915, 1.964709520340, -1.524978280067, 0.647622168064]
+                            [1.579518437386, -2.653081655502, -1.169080734253, 43.123249053955]
+                            [1.921136021614, -0.039305560291, 2.684802055359, -8.070933341980]
+                            [0.000000000000, 0.000000000000, 0.000000000000, 1.000000000000]]
     transform4x4 = [[0.485640704632,	-0.160323888063,	-0.017080472782,	0.875815451145],
                     [0.125420704484,	0.341586232185,	0.359764993191,	-1.248310685158],
                     [-0.101317040622,	-0.345626175404,	0.363482803106,	8.816628456116],
                     [0.000,	0.000,	0.000,	1.000]]
+    transform4x4_dense = np.array(transform4x4_dense)                
     transform4x4 = np.array(transform4x4)
+    transform4x4 = np.dot(transform4x4_dense, transform4x4)
     transformscale = np.linalg.norm(transform4x4[:3, :3], axis=0)[0]
     transform4x4[:3, :3] = transform4x4[:3, :3] / transformscale
 
