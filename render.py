@@ -68,18 +68,22 @@ def render_sets_double_background(dataset : ModelParams, iteration : int, pipeli
         bg_color = [1,1,1] 
         background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
         if not skip_train:
-            render_set(dataset.model_path, "train", scene.loaded_iter, scene.getTrainCameras(), gaussians, pipeline, background, dataset.train_test_exp, separate_sh, render_name="renders_white")
+            render_set(dataset.model_path, "train", scene.loaded_iter, scene.getTrainCameras(), gaussians, pipeline, 
+                background, dataset.train_test_exp, separate_sh, render_name="renders_white", render_shift=args.begin_index)
 
         if not skip_test:
-            render_set(dataset.model_path, "test", scene.loaded_iter, scene.getTestCameras(), gaussians, pipeline, background, dataset.train_test_exp, separate_sh, render_name="renders_white")
+            render_set(dataset.model_path, "test", scene.loaded_iter, scene.getTestCameras(), gaussians, pipeline, 
+                background, dataset.train_test_exp, separate_sh, render_name="renders_white", render_shift=args.begin_index)
 
         # render black
         bg_color = [0,0,0] 
         background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
         if not skip_train:
-            render_set(dataset.model_path, "train", scene.loaded_iter, scene.getTrainCameras(), gaussians, pipeline, background, dataset.train_test_exp, separate_sh, render_name="renders_black")
+            render_set(dataset.model_path, "train", scene.loaded_iter, scene.getTrainCameras(), gaussians, pipeline, 
+                background, dataset.train_test_exp, separate_sh, render_name="renders_black", render_shift=args.begin_index)
         if not skip_test:
-            render_set(dataset.model_path, "test", scene.loaded_iter, scene.getTestCameras(), gaussians, pipeline, background, dataset.train_test_exp, separate_sh, render_name="renders_black")
+            render_set(dataset.model_path, "test", scene.loaded_iter, scene.getTestCameras(), gaussians, pipeline, 
+                background, dataset.train_test_exp, separate_sh, render_name="renders_black", render_shift=args.begin_index)
 
 
 if __name__ == "__main__":
@@ -95,6 +99,9 @@ if __name__ == "__main__":
     parser.add_argument("--image_num", default=450, type=int)
     args = get_combined_args(parser)
     print("Rendering " + args.model_path)
+
+    # print(args.begin_index)
+    # print(args.image_num)
 
     # Initialize system state (RNG)
     safe_state(args.quiet)

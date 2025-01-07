@@ -35,6 +35,11 @@ python train.py \
 -r 1
 
 python render.py \
--s /data/hdd/Data/SkinSight_video/nature_hololens/colmap_dense \
--m /data/hdd/Data/SkinSight_video/nature_hololens/colmap_dense/3dgs \
--r 1
+    -s /data/hdd/Data/SkinSight_video/nature_hololens/colmap_dense \
+    -m /data/hdd/Data/SkinSight_video/nature_hololens/colmap_dense/3dgs \
+    --begin_index 0 --image_num 450 -r 1
+
+python render.py \
+    -s /data/hdd/Data/SkinSight_video/nature_hololens/colmap_dense \
+    -m /data/hdd/Data/SkinSight_video/nature_hololens/colmap_dense/3dgs \
+    --begin_index 450 --image_num 450 -r 1
