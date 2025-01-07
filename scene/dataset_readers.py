@@ -292,8 +292,8 @@ def readColmapSceneInfo(path, images, depths, eval, train_test_exp, llffhold=8, 
     storePly(ply_path, xyz, rgb)
     pcd = fetchPly(ply_path)
 
-    train_cam_infos = train_cam_infos
-    # train_cam_infos = train_cam_infos[450:]
+    # train_cam_infos = train_cam_infos[:450]
+    train_cam_infos = train_cam_infos[450:]
     # train_cam_infos = train_cam_infos[:2500]
     print('Number of train images: ', len(train_cam_infos))
     print('Number of test images: ', len(test_cam_infos))
