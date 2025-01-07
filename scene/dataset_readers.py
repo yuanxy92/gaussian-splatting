@@ -194,13 +194,13 @@ def readColmapSceneInfo(path, images, depths, eval, train_test_exp, llffhold=8, 
                     [-0.101317040622,	-0.345626175404,	0.363482803106,	8.816628456116],
                     [0.000,	0.000,	0.000,	1.000]]
     transform4x4 = np.array(transform4x4)
-    # transform4x4 = np.eye(4)
+    transform4x4 = np.eye(4)
     transformscale = np.linalg.norm(transform4x4[:3, :3], axis=0)[0]
     transform4x4[:3, :3] = transform4x4[:3, :3] / transformscale
 
-    for cam_idx in range(len(cam_extrinsics)):
-        qvec = cam_extrinsics[cam_idx + 1].qvec
-        tvec = cam_extrinsics[cam_idx + 1].tvec
+    for cam_idx in cam_extrinsics.keys():
+        qvec = cam_extrinsics[cam_idx].qvec
+        tvec = cam_extrinsics[cam_idx].tvec
         R = qvec2rotmat(qvec=qvec)
         extrinsic_orig = np.eye(4)
         extrinsic_orig[:3, :3] = R
@@ -208,8 +208,8 @@ def readColmapSceneInfo(path, images, depths, eval, train_test_exp, llffhold=8, 
         extrinsic_new = apply_camera_transform_4x4(extrinsic_orig, transform4x4)
         extrinsic_new[:3, 3] = extrinsic_new[:3, 3] 
 
-        cam_extrinsics[cam_idx + 1] = cam_extrinsics[cam_idx + 1]._replace(qvec=rotmat2qvec(extrinsic_new[:3, :3]))
-        cam_extrinsics[cam_idx + 1] = cam_extrinsics[cam_idx + 1]._replace(tvec=extrinsic_new[:3, 3])
+        cam_extrinsics[cam_idx] = cam_extrinsics[cam_idx]._replace(qvec=rotmat2qvec(extrinsic_new[:3, :3]))
+        cam_extrinsics[cam_idx] = cam_extrinsics[cam_idx]._replace(tvec=extrinsic_new[:3, 3])
         # cam_extrinsics[cam_idx + 1].qvec = rotmat2qvec(extrinsic_new[:3, :3])
         # cam_extrinsics[cam_idx + 1].tvec = extrinsic_new[:3, 3]
 

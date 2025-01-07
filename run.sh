@@ -9,3 +9,25 @@ python render.py \
 -s /data/hdd/Data/SkinSight_video/UVC_cam_undis \
 -m /data/hdd/Data/SkinSight_video/UVC_cam_undis/3dgs \
 -r 1
+
+
+python train.py \
+-s /data/hdd/Data/SkinSight_video/nature_hololens/colmap \
+-m /data/hdd/Data/SkinSight_video/nature_hololens/colmap/3dgs \
+-r 1
+
+python render.py \
+-s /data/hdd/Data/SkinSight_video/nature_hololens/colmap \
+-m /data/hdd/Data/SkinSight_video/nature_hololens/colmap/3dgs \
+-r 1
+
+
+python train.py \
+-s /data/hdd/Data/SkinSight_video/nature_hololens/colmap_dense \
+-m /data/hdd/Data/SkinSight_video/nature_hololens/colmap_dense/3dgs \
+-r 1
+
+python render.py \
+-s /data/hdd/Data/SkinSight_video/nature_hololens/colmap_dense \
+-m /data/hdd/Data/SkinSight_video/nature_hololens/colmap_dense/3dgs \
+-r 1
