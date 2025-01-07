@@ -563,11 +563,18 @@ def read_model_transform(path, ext=""):
         points3D = read_points3D_binary(os.path.join(path, "points3D") + ext)
 
     # apply transformation matrix
+    transform4x4_dense =   [[2.668165445328, 0.737033188343, -1.628383398056, 0.683471500874],
+                            [0.333315342665, 2.669308900833, 1.754322528839, 0.722903311253],
+                            [1.756061315536, -1.626508116722, 2.141185760498, 0.299995273352],
+                            [0.000000000000, 0.000000000000, 0.000000000000, 1.000000000000]]
     transform4x4 = [[0.485640704632,	-0.160323888063,	-0.017080472782,	0.875815451145],
                     [0.125420704484,	0.341586232185,	0.359764993191,	-1.248310685158],
                     [-0.101317040622,	-0.345626175404,	0.363482803106,	8.816628456116],
                     [0.000,	0.000,	0.000,	1.000]]
+    transform4x4_dense = np.array(transform4x4_dense)                
     transform4x4 = np.array(transform4x4)
+    transform4x4 = np.matmul(transform4x4_dense, transform4x4)
+
     transformscale = np.linalg.norm(transform4x4[:3, :3], axis=0)[0]
     transform4x4[:3, :3] = transform4x4[:3, :3] / transformscale
 

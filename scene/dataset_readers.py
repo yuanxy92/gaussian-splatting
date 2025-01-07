@@ -189,9 +189,9 @@ def readColmapSceneInfo(path, images, depths, eval, train_test_exp, llffhold=8, 
         cam_intrinsics = read_intrinsics_text(cameras_intrinsic_file)
 
     # apply transformation matrix
-    transform4x4_dense =   [[2.171365737915, 1.964709520340, -1.524978280067, 0.647622168064]
-                            [1.579518437386, -2.653081655502, -1.169080734253, 43.123249053955]
-                            [1.921136021614, -0.039305560291, 2.684802055359, -8.070933341980]
+    transform4x4_dense =   [[2.668165445328, 0.737033188343, -1.628383398056, 0.683471500874],
+                            [0.333315342665, 2.669308900833, 1.754322528839, 0.722903311253],
+                            [1.756061315536, -1.626508116722, 2.141185760498, 0.299995273352],
                             [0.000000000000, 0.000000000000, 0.000000000000, 1.000000000000]]
     transform4x4 = [[0.485640704632,	-0.160323888063,	-0.017080472782,	0.875815451145],
                     [0.125420704484,	0.341586232185,	0.359764993191,	-1.248310685158],
@@ -199,8 +199,9 @@ def readColmapSceneInfo(path, images, depths, eval, train_test_exp, llffhold=8, 
                     [0.000,	0.000,	0.000,	1.000]]
     transform4x4_dense = np.array(transform4x4_dense)                
     transform4x4 = np.array(transform4x4)
-    transform4x4 = np.dot(transform4x4_dense, transform4x4)
-    # transform4x4 = np.eye(4)
+    transform4x4 = np.matmul(transform4x4_dense, transform4x4)
+
+    transform4x4 = np.eye(4)
     transformscale = np.linalg.norm(transform4x4[:3, :3], axis=0)[0]
     transform4x4[:3, :3] = transform4x4[:3, :3] / transformscale
 
@@ -291,7 +292,9 @@ def readColmapSceneInfo(path, images, depths, eval, train_test_exp, llffhold=8, 
     storePly(ply_path, xyz, rgb)
     pcd = fetchPly(ply_path)
 
-    train_cam_infos = train_cam_infos[:2500]
+    train_cam_infos = train_cam_infos
+    # train_cam_infos = train_cam_infos[450:]
+    # train_cam_infos = train_cam_infos[:2500]
     print('Number of train images: ', len(train_cam_infos))
     print('Number of test images: ', len(test_cam_infos))
 
