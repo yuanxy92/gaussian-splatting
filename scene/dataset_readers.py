@@ -200,6 +200,7 @@ def readColmapSceneInfo(path, images, depths, eval, train_test_exp, llffhold=8, 
     transform4x4_dense = np.array(transform4x4_dense)                
     transform4x4 = np.array(transform4x4)
     transform4x4 = np.dot(transform4x4_dense, transform4x4)
+    # transform4x4 = np.eye(4)
     transformscale = np.linalg.norm(transform4x4[:3, :3], axis=0)[0]
     transform4x4[:3, :3] = transform4x4[:3, :3] / transformscale
 
@@ -211,6 +212,7 @@ def readColmapSceneInfo(path, images, depths, eval, train_test_exp, llffhold=8, 
         extrinsic_orig[:3, :3] = R
         extrinsic_orig[:3, 3] = tvec * transformscale
         extrinsic_new = apply_camera_transform_4x4(extrinsic_orig, transform4x4)
+        extrinsic_new[:3, 3] = extrinsic_new[:3, 3] 
 
         cam_extrinsics[cam_idx + 1] = cam_extrinsics[cam_idx + 1]._replace(qvec=rotmat2qvec(extrinsic_new[:3, :3]))
         cam_extrinsics[cam_idx + 1] = cam_extrinsics[cam_idx + 1]._replace(tvec=extrinsic_new[:3, 3])
@@ -284,8 +286,8 @@ def readColmapSceneInfo(path, images, depths, eval, train_test_exp, llffhold=8, 
         xyz, rgb, _ = read_points3D_binary(bin_path)
     except:
         xyz, rgb, _ = read_points3D_text(txt_path)
-    xyz = apply_4x4_transform(xyz, transform4x4)
     xyz = xyz * transformscale
+    xyz = apply_4x4_transform(xyz, transform4x4)
     storePly(ply_path, xyz, rgb)
     pcd = fetchPly(ply_path)
 
